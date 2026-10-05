@@ -1,0 +1,9 @@
+id,name,width,start_x,start_y,end_x,end_y,radius,type,cost,open
+1,Sunset Boulevard,12.0,100,200,500,200,0.0,AVENUE,15,true
+2,Main Street,8.0,250,50,250,450,0.0,STREET,8,true
+3,Grand Highway North,18.0,50,50,600,100,25.0,HIGHWAY,30,true
+4,Oak Avenue,10.0,100,350,500,350,0.0,AVENUE,12,true
+5,Pine Lane,6.0,150,200,150,350,0.0,STREET,5,true
+6,Elm Court,6.0,380,200,380,350,0.0,STREET,6,true
+7,Industrial Bypass,16.0,500,200,650,450,40.0,HIGHWAY,25,false
+8,River Walkway,6.0,250,450,450,500,15.0,STREET,4,true

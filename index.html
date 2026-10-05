@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map Trace Editor - Road Network Designer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Navigation Bar -->
+    <header class="app-header">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+          <line x1="8" y1="2" x2="8" y2="18"></line>
+          <line x1="16" y1="6" x2="16" y2="22"></line>
+        </svg>
+        <span class="brand-title">Map Trace Editor</span>
+        <span class="badge">CSV Powered</span>
+      </div>
+
+      <!-- Canvas Tools -->
+      <div class="tool-modes">
+        <button id="btnModeSelect" class="tool-btn active" title="Select and Move Trace (V)">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M3 3l7 18 3-7 7-3L3 3z"/></svg>
+          <span>Select</span>
+        </button>
+        <button id="btnModeDraw" class="tool-btn" title="Draw New Trace (D)">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Draw Trace</span>
+        </button>
+        <button id="btnModePan" class="tool-btn" title="Pan Canvas (H / Space+Drag)">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>
+          <span>Pan</span>
+        </button>
+      </div>
+
+      <!-- Quick Canvas Actions -->
+      <div class="nav-actions">
+        <button id="btnFitView" class="btn btn-secondary btn-sm" title="Center and zoom to fit all traces">
+          <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <span>Fit View</span>
+        </button>
+        <button id="btnLoadSample" class="btn btn-secondary btn-sm" title="Load sample city road network">
+          <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          <span>Sample Map</span>
+        </button>
+
+        <div class="divider-vertical"></div>
+
+        <!-- Import / Export Actions -->
+        <input type="file" id="csvFileInput" accept=".csv,text/csv" style="display: none;">
+        <button id="btnImportCSV" class="btn btn-secondary btn-sm" title="Import map from CSV file">
+          <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span>Load CSV</span>
+        </button>
+        <button id="btnExportCSV" class="btn btn-primary btn-sm" title="Export map to CSV">
+          <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Export CSV</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="workspace">
+      <!-- Left Sidebar: Controls & Inspector -->
+      <aside class="sidebar">
+        <!-- Trace Inspector / Editor Form -->
+        <section class="panel">
+          <div class="panel-header">
+            <h2 id="inspectorTitle">Trace Properties</h2>
+            <span id="selectedIdBadge" class="tag tag-new">New Trace</span>
+          </div>
+
+          <form id="traceForm" class="panel-body">
+            <input type="hidden" id="fieldId">
+
+            <div class="form-group">
+              <label for="fieldName">Road Name</label>
+              <input type="text" id="fieldName" placeholder="e.g. Broadway St" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="fieldType">Road Type</label>
+                <select id="fieldType">
+                  <option value="STREET">STREET</option>
+                  <option value="AVENUE">AVENUE</option>
+                  <option value="HIGHWAY">HIGHWAY</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="fieldWidth">Width (px)</label>
+                <input type="number" id="fieldWidth" min="1" max="50" step="0.5" value="8.0" required>
+              </div>
+            </div>
+
+            <!-- Start Point -->
+            <div class="point-box">
+              <div class="point-box-title">
+                <span class="dot dot-start"></span>
+                <span>Start Point (X, Y)</span>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <input type="number" id="fieldStartX" placeholder="Start X" step="1" value="100" required>
+                </div>
+                <div class="form-group">
+                  <input type="number" id="fieldStartY" placeholder="Start Y" step="1" value="100" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- End Point -->
+            <div class="point-box">
+              <div class="point-box-title">
+                <span class="dot dot-end"></span>
+                <span>End Point (X, Y)</span>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <input type="number" id="fieldEndX" placeholder="End X" step="1" value="300" required>
+                </div>
+                <div class="form-group">
+                  <input type="number" id="fieldEndY" placeholder="End Y" step="1" value="100" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="fieldRadius">Radius (Curvature)</label>
+                <input type="number" id="fieldRadius" min="-200" max="200" step="1" value="0.0" title="0 for straight line, positive/negative for curved road">
+              </div>
+
+              <div class="form-group">
+                <label for="fieldCost">Cost</label>
+                <input type="number" id="fieldCost" min="0" step="1" value="10" required>
+              </div>
+            </div>
+
+            <div class="form-group form-checkbox">
+              <label class="switch">
+                <input type="checkbox" id="fieldOpen" checked>
+                <span class="slider"></span>
+              </label>
+              <label for="fieldOpen" class="switch-label">Open for Traffic</label>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="btnSaveTrace" class="btn btn-primary btn-block">Add Trace</button>
+              <div class="form-sub-actions">
+                <button type="button" id="btnCancelEdit" class="btn btn-secondary btn-sm" style="display: none;">Cancel</button>
+                <button type="button" id="btnDeleteTrace" class="btn btn-danger btn-sm" style="display: none;">Delete</button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- Canvas Options & Snapping -->
+        <section class="panel">
+          <div class="panel-header">
+            <h3>Snapping & Canvas</h3>
+          </div>
+          <div class="panel-body">
+            <div class="toggle-row">
+              <label for="chkSnapGrid">Snap to Grid (20px)</label>
+              <input type="checkbox" id="chkSnapGrid" checked>
+            </div>
+            <div class="toggle-row">
+              <label for="chkSnapPoints">Snap to Endpoints</label>
+              <input type="checkbox" id="chkSnapPoints" checked>
+            </div>
+            <div class="toggle-row">
+              <label for="chkShowLabels">Show Road Labels</label>
+              <input type="checkbox" id="chkShowLabels" checked>
+            </div>
+          </div>
+        </section>
+
+        <!-- Quick Map Statistics -->
+        <section class="panel stats-panel">
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-value" id="statCount">0</span>
+              <span class="stat-label">Total Traces</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="statOpen">0</span>
+              <span class="stat-label">Open Roads</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="statCost">0</span>
+              <span class="stat-label">Total Cost</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="statClosed">0</span>
+              <span class="stat-label">Closed</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Center: Interactive Map Canvas -->
+      <main class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="mapCanvas"></canvas>
+
+        <!-- Floating Info Overlay / Status Bar -->
+        <div class="canvas-overlay bottom-left">
+          <span id="cursorCoords">X: 0, Y: 0</span>
+          <span class="overlay-sep">•</span>
+          <span id="zoomLevel">100%</span>
+          <span class="overlay-sep">•</span>
+          <span id="activeModeText">Select Mode</span>
+        </div>
+
+        <!-- Drawing Hint Toast -->
+        <div id="drawingHint" class="drawing-hint" style="display: none;">
+          Click canvas to place Start Point. (Press ESC to cancel)
+        </div>
+
+        <!-- Zoom Controls Overlay -->
+        <div class="canvas-overlay bottom-right">
+          <div class="zoom-controls">
+            <button id="btnZoomIn" title="Zoom In (+)">+</button>
+            <button id="btnZoomReset" title="Reset Zoom">1:1</button>
+            <button id="btnZoomOut" title="Zoom Out (-)">−</button>
+          </div>
+        </div>
+
+        <!-- Drag & Drop overlay zone -->
+        <div id="dropZoneOverlay" class="drop-zone-overlay">
+          <div class="drop-zone-content">
+            <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <h3>Drop CSV Map file here</h3>
+            <p>Load traces from CSV file</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Bottom Collapsible Data Table Drawer -->
+    <div class="data-drawer collapsed" id="dataDrawer">
+      <div class="drawer-header" id="drawerToggle">
+        <div class="drawer-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          <span>Traces Table (<span id="tableCountBadge">0</span>)</span>
+        </div>
+        <div class="drawer-actions" onclick="event.stopPropagation()">
+          <input type="text" id="tableSearch" placeholder="Filter by road name or type..." class="table-search-input">
+          <button id="btnClearMap" class="btn btn-secondary btn-xs text-danger">Clear All</button>
+        </div>
+        <button class="drawer-chevron" id="drawerChevronBtn" title="Toggle Table Drawer">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="18 15 12 9 6 15"></polyline></svg>
+        </button>
+      </div>
+
+      <div class="drawer-content">
+        <div class="table-container">
+          <table id="tracesTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Width</th>
+                <th>Start (x, y)</th>
+                <th>End (x, y)</th>
+                <th>Radius</th>
+                <th>Cost</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tracesTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
